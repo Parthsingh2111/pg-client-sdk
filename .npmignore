@@ -1,0 +1,25 @@
+# Don't include tests
+test/
+tests/
+coverage/
+
+# Don't include local configs or dev files
+.env
+.env.*
+*.log
+*.test.js
+
+# Don't include dev tools
+.vscode/
+.idea/
+
+# Don't include unnecessary files
+rollup.config.js
+.gitignore
+.npmignore
+
+# Don't include node_modules (NPM ignores this anyway)
+node_modules/
+
+# Source files if only built output is needed
+lib/

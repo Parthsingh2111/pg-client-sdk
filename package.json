@@ -1,0 +1,40 @@
+{
+  "name": "payglocal-client",
+  "version": "1.0.2",
+  "description": "A lightweight and secure SDK for integrating with PayGlocal payment APIs",
+  "main": "lib/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "rollup -c",
+    "test": "echo \"No tests defined\""
+  },
+  "keywords": [
+    "payglocal",
+    "payment",
+    "sdk",
+    "api",
+    "integration",
+    "merchant"
+  ],
+  "author": "Parth Singh <singhparth2111@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "axios-retry": "^3.5.0",
+    "jose": "^6.0.11"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "rollup": "^3.29.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Parthsingh2111/payglocal-client.git"
+  },
+  "homepage": "https://github.com/Parthsingh2111/payglocal-client#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}
