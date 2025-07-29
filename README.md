@@ -9,10 +9,11 @@ This SDK supports API key payments, JWT-based payments, standing instructions (S
 
 - **Secure Transactions**: Uses JWE (RSA-OAEP-256) and JWS (RS256) for encrypted and signed payloads.
 - **Comprehensive Payment Options**: API key, JWT, SI, auth, captures, refunds, reversals.
-- **Reliable API Calls**: Built-in retries with exponential backoff using `axios-retry`.(in development stage)
+- **Reliable API Calls**: Built-in retries with exponential backoff using native fetch.
 - **Input Validation**: Schema validation with `ajv` and custom checks.
 - **Developer-Friendly**: Intuitive APIs, configurable logging, and sandbox support.
 - **Node.js Compatible**: Works with Node.js 18.x and 20.x; supports Express/Fastify.
+- **Minimal Dependencies**: Uses native fetch instead of axios for better performance and fewer dependencies.
 
 ---
 
@@ -47,6 +48,53 @@ PAYGLOCAL_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
 PAYGLOCAL_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
 PAYGLOCAL_BASE_URL=https://api.uat.payglocal.in
 PAYGLOCAL_LOG_LEVEL=info
+```
+
+---
+
+##  Logging
+
+The SDK includes a comprehensive logging system with multiple levels and structured output:
+
+### Log Levels
+- **`error`**: Critical errors and failures
+- **`warn`**: Warning messages and potential issues  
+- **`info`**: General information and successful operations
+- **`debug`**: Detailed debugging information (API requests, responses, etc.)
+
+### Environment Variable
+```env
+PAYGLOCAL_LOG_LEVEL=debug  # Set to 'error', 'warn', 'info', or 'debug'
+```
+
+### Log Output Format
+```
+[2025-07-28T13:27:15.996Z] [INFO] [PAYGLOCAL-SDK] Payment Operation: initiateJwtPayment {
+  "merchantTxnId": "TXN123",
+  "success": true,
+  "hasPaymentLink": true,
+  "hasStatusLink": true
+}
+```
+
+### Features
+- **Structured JSON logging** for easy parsing
+- **Timestamped entries** with ISO format
+- **Sensitive data masking** (API keys, tokens)
+- **API request/response logging** in debug mode
+- **Payment operation tracking** with success/failure indicators
+- **Configuration logging** (without sensitive data)
+
+### Example Usage
+```js
+// Set log level via environment variable
+process.env.PAYGLOCAL_LOG_LEVEL = 'debug';
+
+// Or configure in client initialization
+const client = new PayGlocalClient({
+  // ... other config
+  logLevel: 'debug'
+});
 ```
 
 Install `dotenv`:
