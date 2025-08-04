@@ -869,7 +869,7 @@ async function initiatePaymentWithRetry(paymentData, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await client.initiateJwtPayment(paymentData);
-    } catch (error) {
+} catch (error) {
       if (attempt === maxRetries) throw error;
       if (error.message.includes('timeout')) {
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
