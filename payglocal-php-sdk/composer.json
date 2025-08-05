@@ -1,0 +1,51 @@
+{
+    "name": "payglocal/client-php",
+    "description": "A lightweight, secure, and dependency-minimal PHP SDK for integrating with PayGlocal payment APIs",
+    "version": "2.0.0",
+    "type": "library",
+    "keywords": [
+        "payglocal",
+        "payment",
+        "sdk",
+        "api",
+        "integration",
+        "merchant",
+        "php"
+    ],
+    "authors": [
+        {
+            "name": "PayGlocal SDK Team",
+            "email": "support@payglocal.com"
+        }
+    ],
+    "license": "MIT",
+    "require": {
+        "php": ">=7.4",
+        "ext-json": "*",
+        "ext-openssl": "*",
+        "ext-curl": "*",
+        "web-token/jwt-core": "^3.0",
+        "web-token/jwt-encryption": "^3.0",
+        "web-token/jwt-signature": "^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0",
+        "phpstan/phpstan": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "PayGlocal\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PayGlocal\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
