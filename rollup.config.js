@@ -8,7 +8,7 @@ module.exports = [
     output: {
       file: 'dist/index.js',
       format: 'cjs',
-      exports: 'default',
+      exports: 'named',
     },
     plugins: [nodeResolve(), commonjs(), json()],
   },
