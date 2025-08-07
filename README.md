@@ -77,7 +77,7 @@ const client = new PayGlocalClient({
 ```javascript
 async function createJwtPayment() {
   try {
-    const payment = await client.initiateJwtPayment({
+    const response = await client.initiateJwtPayment({
       merchantTxnId: 'TXN_' + Date.now(),
       paymentData: {
         totalAmount: '1000.00',
@@ -86,19 +86,17 @@ async function createJwtPayment() {
           emailId: 'customer@example.com',
           firstName: 'John',
           lastName: 'Doe',
-          mobileNumber: '9876543210'
+          phoneNumber: '9876543210'
         }
       },
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log(' Payment Created Successfully');
-    console.log('Payment Link:', payment.paymentLink);
-    console.log('Global Transaction ID (GID):', payment.gid);
-    
-    return payment;
+    console.log(' response received Successfully');
+    console.log('Resonse:', response);
+    return response;
   } catch (error) {
-    console.error(' Payment Failed:', error.message);
+    console.error('Error: Response not received:', error.message);
     throw error;
   }
 }
