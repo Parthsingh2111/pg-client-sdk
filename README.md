@@ -33,7 +33,6 @@ Create a `.env` file in your project root:
 
 ```env
 # Required Configuration
-PAYGLOCAL_API_KEY=your_api_key_here
 PAYGLOCAL_MERCHANT_ID=your_merchant_id_here
 PAYGLOCAL_PUBLIC_KEY_ID=your_public_key_id_here
 PAYGLOCAL_PRIVATE_KEY_ID=your_private_key_id_here
@@ -55,7 +54,6 @@ const PayGlocalClient = require('payglocal-client');
 
 // Initialize the client
 const client = new PayGlocalClient({
-  apiKey: process.env.PAYGLOCAL_API_KEY,
   merchantId: process.env.PAYGLOCAL_MERCHANT_ID,
   publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID,
   privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID,
@@ -102,7 +100,7 @@ async function createJwtPayment() {
 }
 ```
 
-#### 2. API Key-Based Payment
+#### 2. API Key-Based Payment ( **ONLY PROVIDED IN SOME EXCEPTION, MERCHANT NEED TO CONNECT WITH TEAM FOR THIS TYPE OF INTEGRATION)**
 
 ```javascript
 async function createApiKeyPayment() {
