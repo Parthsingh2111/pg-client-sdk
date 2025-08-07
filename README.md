@@ -92,13 +92,13 @@ async function createJwtPayment() {
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log('✅ Payment Created Successfully');
+    console.log(' Payment Created Successfully');
     console.log('Payment Link:', payment.paymentLink);
     console.log('Global Transaction ID (GID):', payment.gid);
     
     return payment;
   } catch (error) {
-    console.error('❌ Payment Failed:', error.message);
+    console.error(' Payment Failed:', error.message);
     throw error;
   }
 }
@@ -121,12 +121,12 @@ async function createApiKeyPayment() {
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log('✅ API Key Payment Created');
+    console.log('API Key Payment Created');
     console.log('Payment Link:', payment.paymentLink);
     
     return payment;
   } catch (error) {
-    console.error('❌ API Key Payment Failed:', error.message);
+    console.error('API Key Payment Failed:', error.message);
     throw error;
   }
 }
@@ -158,13 +158,13 @@ async function createSiPayment() {
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log('✅ SI Payment Created');
+    console.log('SI Payment Created');
     console.log('Payment Link:', payment.paymentLink);
     console.log('GID:', payment.gid);
     
     return payment;
   } catch (error) {
-    console.error('❌ SI Payment Failed:', error.message);
+    console.error('SI Payment Failed:', error.message);
     throw error;
   }
 }
@@ -191,13 +191,13 @@ async function createAuthPayment() {
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log('✅ Auth Payment Created');
+    console.log('Auth Payment Created');
     console.log('Payment Link:', payment.paymentLink);
     console.log('GID:', payment.gid);
     
     return payment;
   } catch (error) {
-    console.error('❌ Auth Payment Failed:', error.message);
+    console.error('Auth Payment Failed:', error.message);
     throw error;
   }
 }
@@ -212,14 +212,14 @@ async function checkPaymentStatus(gid) {
   try {
     const status = await client.initiateCheckStatus({ gid });
     
-    console.log('✅ Status Retrieved');
+    console.log('Status Retrieved');
     console.log('Status:', status.status);
     console.log('GID:', status.gid);
     console.log('Message:', status.message);
     
     return status;
   } catch (error) {
-    console.error('❌ Status Check Failed:', error.message);
+    console.error('Status Check Failed:', error.message);
     throw error;
   }
 }
@@ -237,13 +237,13 @@ async function capturePayment(gid, amount = null) {
       paymentData: amount ? { totalAmount: amount } : undefined
     });
 
-    console.log('✅ Payment Captured');
+    console.log('Payment Captured');
     console.log('Capture ID:', capture.captureId);
     console.log('Status:', capture.status);
     
     return capture;
   } catch (error) {
-    console.error('❌ Capture Failed:', error.message);
+    console.error('Capture Failed:', error.message);
     throw error;
   }
 }
@@ -261,13 +261,13 @@ async function refundPayment(gid, amount = null) {
       paymentData: amount ? { totalAmount: amount } : undefined
     });
 
-    console.log('✅ Payment Refunded');
+    console.log('Payment Refunded');
     console.log('Refund ID:', refund.refundId);
     console.log('Status:', refund.status);
     
     return refund;
   } catch (error) {
-    console.error('❌ Refund Failed:', error.message);
+    console.error('Refund Failed:', error.message);
     throw error;
   }
 }
@@ -283,13 +283,13 @@ async function reverseAuth(gid) {
       merchantTxnId: 'REVERSAL_' + Date.now()
     });
 
-    console.log('✅ Auth Reversed');
+    console.log( 'Auth Reversed');
     console.log('Reversal ID:', reversal.reversalId);
     console.log('Status:', reversal.status);
     
     return reversal;
   } catch (error) {
-    console.error('❌ Auth Reversal Failed:', error.message);
+    console.error('Auth Reversal Failed:', error.message);
     throw error;
   }
 }
@@ -310,13 +310,13 @@ async function pauseStandingInstruction(mandateId) {
       }
     });
 
-    console.log('✅ SI Paused');
+    console.log('SI Paused');
     console.log('Mandate ID:', pause.mandateId);
     console.log('Status:', pause.status);
     
     return pause;
   } catch (error) {
-    console.error('❌ SI Pause Failed:', error.message);
+    console.error('SI Pause Failed:', error.message);
     throw error;
   }
 }
@@ -335,13 +335,13 @@ async function activateStandingInstruction(mandateId) {
       }
     });
 
-    console.log('✅ SI Activated');
+    console.log('SI Activated');
     console.log('Mandate ID:', activate.mandateId);
     console.log('Status:', activate.status);
     
     return activate;
   } catch (error) {
-    console.error('❌ SI Activation Failed:', error.message);
+    console.error('SI Activation Failed:', error.message);
     throw error;
   }
 }
@@ -477,7 +477,7 @@ app.post('/api/payments/refund', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 ```
 
@@ -539,7 +539,7 @@ app.get('/api/payments/:gid/status', async (request, reply) => {
 
 app.listen({ port: 3000 }, (err) => {
   if (err) throw err;
-  console.log('🚀 Fastify server running on port 3000');
+  console.log('Fastify server running on port 3000');
 });
 ```
 
@@ -691,7 +691,7 @@ const devClient = new PayGlocalClient({
 
 ---
 
-## 🚀 Best Practices
+## Best Practices
 
 ### 1. Error Handling
 
@@ -889,13 +889,13 @@ async function initiatePaymentWithRetry(paymentData, maxRetries = 3) {
 
 ```javascript
 // Store keys securely
-// ❌ Don't hardcode keys
+// Don't hardcode keys
 const client = new PayGlocalClient({
   apiKey: 'hardcoded_key', // Bad
   merchantPrivateKey: 'hardcoded_key' // Bad
 });
 
-// ✅ Use environment variables
+// Use environment variables
 const client = new PayGlocalClient({
   apiKey: process.env.PAYGLOCAL_API_KEY, // Good
   merchantPrivateKey: process.env.PAYGLOCAL_PRIVATE_KEY // Good
@@ -940,7 +940,7 @@ const client = new PayGlocalClient({
 
 ---
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [PayGlocal API Documentation](https://docs.payglocal.in)
 - [Node.js Best Practices](https://nodejs.org/en/docs/guides/)
@@ -949,7 +949,7 @@ const client = new PayGlocalClient({
 
 ---
 
-## 🤝 Support
+## Support
 
 For technical support, please contact:
 
@@ -959,13 +959,13 @@ For technical support, please contact:
 
 ---
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 **Parth Singh** - [GitHub](https://github.com/Parthsingh2111)
 
