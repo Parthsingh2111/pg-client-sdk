@@ -1,4 +1,4 @@
-# PayGlocal Client SDK
+# PayGlocal Client SDK v2.0.0
 
 A **production-ready**, secure, and modular Node.js SDK for integrating with the PayGlocal payment gateway. This SDK provides a comprehensive solution for all payment operations including API key payments, JWT-based payments, standing instructions (SI), auth payments, captures, refunds, reversals, and status checks.
 
@@ -37,30 +37,82 @@ PAYGLOCAL_MERCHANT_ID=your_merchant_id_here
 PAYGLOCAL_PUBLIC_KEY_ID=your_public_key_id_here
 PAYGLOCAL_PRIVATE_KEY_ID=your_private_key_id_here
 
-# RSA Keys (PEM format)
-PAYGLOCAL_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----
-PAYGLOCAL_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----
+# RSA Keys (PEM format) - File paths
+PAYGLOCAL_PUBLIC_KEY=keys/payglocal_public_key
+PAYGLOCAL_PRIVATE_KEY=keys/payglocal_private_key
 
 # Environment Configuration
-PAYGLOCAL_BASE_URL=https://api.uat.payglocal.in  # UAT or PROD
+PAYGLOCAL_Env_VAR=UAT  # UAT or PROD
 PAYGLOCAL_LOG_LEVEL=info  # error, warn, info, debug
+
+# Optional: API Key (for API key-based authentication)
+PAYGLOCAL_API_KEY=your_api_key_here
 ```
 
-### 2. SDK Initialization
+### 2. Key Files Setup
+
+Create a `keys` directory in your project root and place your PEM key files:
+
+```
+project/
+├── keys/
+│   ├── payglocal_public_key
+│   └── payglocal_private_key
+├── .env
+└── index.js
+```
+
+### 3. SDK Initialization
 
 ```javascript
 require('dotenv').config();
 const PayGlocalClient = require('payglocal-client');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+// Key normalization function
+function normalizePemKey(key) {
+  return key
+    .trim()
+    .replace(/\r\n|\r/g, '\n')
+    .replace(/\n\s*\n/g, '\n')
+    .replace(/[^\x00-\x7F]/g, '');
+}
+
+// Read and normalize PEM key content
+const payglocalPublicKey = normalizePemKey(
+  fs.readFileSync(path.resolve(__dirname, process.env.PAYGLOCAL_PUBLIC_KEY), 'utf8')
+);
+const merchantPrivateKey = normalizePemKey(
+  fs.readFileSync(path.resolve(__dirname, process.env.PAYGLOCAL_PRIVATE_KEY), 'utf8')
+);
+
+// Validate keys
+try {
+  crypto.createPublicKey(payglocalPublicKey);
+  console.log('Public key is valid');
+} catch (e) {
+  console.error('Invalid public key:', e.message);
+}
+
+try {
+  crypto.createPrivateKey(merchantPrivateKey);
+  console.log('Private key is valid');
+} catch (e) {
+  console.error('Invalid private key:', e.message);
+}
 
 // Initialize the client
 const client = new PayGlocalClient({
+  apiKey: process.env.PAYGLOCAL_API_KEY,
   merchantId: process.env.PAYGLOCAL_MERCHANT_ID,
   publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID,
   privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID,
-  payglocalPublicKey: process.env.PAYGLOCAL_PUBLIC_KEY,
-  merchantPrivateKey: process.env.PAYGLOCAL_PRIVATE_KEY,
-  baseUrl: process.env.PAYGLOCAL_BASE_URL,
-  logLevel: process.env.PAYGLOCAL_LOG_LEVEL
+  payglocalPublicKey,
+  merchantPrivateKey,
+  payglocalEnv: process.env.PAYGLOCAL_Env_VAR,
+  logLevel: process.env.PAYGLOCAL_LOG_LEVEL || 'debug'
 });
 ```
 
@@ -90,22 +142,21 @@ async function createJwtPayment() {
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log(' response received Successfully');
-    console.log('Resonse:', response);
+    console.log('JWT Payment Response:', response);
     return response;
   } catch (error) {
-    console.error('Error: Response not received:', error.message);
+    console.error('JWT Payment Error:', error.message);
     throw error;
   }
 }
 ```
 
-#### 2. API Key-Based Payment ( **ONLY PROVIDED IN SOME EXCEPTION, MERCHANT NEED TO CONNECT WITH TEAM FOR THIS TYPE OF INTEGRATION)**
+#### 2. API Key-Based Payment
 
 ```javascript
 async function createApiKeyPayment() {
   try {
-    const payment = await client.initiateApiKeyPayment({
+    const response = await client.initiateApiKeyPayment({
       merchantTxnId: 'TXN_' + Date.now(),
       paymentData: {
         totalAmount: '500.00',
@@ -117,12 +168,10 @@ async function createApiKeyPayment() {
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log('API Key Payment Created');
-    console.log('Payment Link:', payment.paymentLink);
-    
-    return payment;
+    console.log('API Key Payment Response:', response);
+    return response;
   } catch (error) {
-    console.error('API Key Payment Failed:', error.message);
+    console.error('API Key Payment Error:', error.message);
     throw error;
   }
 }
@@ -133,7 +182,7 @@ async function createApiKeyPayment() {
 ```javascript
 async function createSiPayment() {
   try {
-    const payment = await client.initiateSiPayment({
+    const response = await client.initiateSiPayment({
       merchantTxnId: 'SI_TXN_' + Date.now(),
       paymentData: {
         totalAmount: '1000.00',
@@ -144,23 +193,20 @@ async function createSiPayment() {
       },
       standingInstruction: {
         data: {
-          numberOfPayments: 12,
+          numberOfPayments: '12',
           frequency: 'MONTHLY',
           type: 'FIXED',
           amount: '1000.00',
-          startDate: '2024-02-01'
+          startDate: '2025-09-01'
         }
       },
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log('SI Payment Created');
-    console.log('Payment Link:', payment.paymentLink);
-    console.log('GID:', payment.gid);
-    
-    return payment;
+    console.log('SI Payment Response:', response);
+    return response;
   } catch (error) {
-    console.error('SI Payment Failed:', error.message);
+    console.error('SI Payment Error:', error.message);
     throw error;
   }
 }
@@ -171,7 +217,7 @@ async function createSiPayment() {
 ```javascript
 async function createAuthPayment() {
   try {
-    const payment = await client.initiateAuthPayment({
+    const response = await client.initiateAuthPayment({
       merchantTxnId: 'AUTH_TXN_' + Date.now(),
       paymentData: {
         totalAmount: '2000.00',
@@ -180,20 +226,14 @@ async function createAuthPayment() {
           emailId: 'customer@example.com'
         }
       },
-      captureTxn: {
-        captureType: 'AUTO',
-        captureAmount: '2000.00'
-      },
+      captureTxn: false,
       merchantCallbackURL: 'https://your-domain.com/payment/callback'
     });
 
-    console.log('Auth Payment Created');
-    console.log('Payment Link:', payment.paymentLink);
-    console.log('GID:', payment.gid);
-    
-    return payment;
+    console.log('Auth Payment Response:', response);
+    return response;
   } catch (error) {
-    console.error('Auth Payment Failed:', error.message);
+    console.error('Auth Payment Error:', error.message);
     throw error;
   }
 }
@@ -206,16 +246,17 @@ async function createAuthPayment() {
 ```javascript
 async function checkPaymentStatus(gid) {
   try {
-    const status = await client.initiateCheckStatus({ gid });
+    const response = await client.initiateCheckStatus({ gid });
     
     console.log('Status Retrieved');
-    console.log('Status:', status.status);
-    console.log('GID:', status.gid);
-    console.log('Message:', status.message);
+    console.log('Status:', response.status);
+    console.log('GID:', response.gid);
+    console.log('Message:', response.message);
+    console.log('Raw Response:', response);
     
-    return status;
+    return response;
   } catch (error) {
-    console.error('Status Check Failed:', error.message);
+    console.error('Status Check Error:', error.message);
     throw error;
   }
 }
@@ -226,20 +267,28 @@ async function checkPaymentStatus(gid) {
 ```javascript
 async function capturePayment(gid, amount = null) {
   try {
-    const capture = await client.initiateCapture({
-      gid: gid,
-      merchantTxnId: 'CAPTURE_' + Date.now(),
-      captureType: amount ? 'PARTIAL' : 'FULL',
-      paymentData: amount ? { totalAmount: amount } : undefined
-    });
+    const payload = amount 
+      ? { 
+          captureType: 'P', 
+          gid, 
+          merchantTxnId: 'CAPTURE_' + Date.now(),
+          paymentData: { totalAmount: amount }
+        }
+      : { 
+          captureType: 'F', 
+          gid, 
+          merchantTxnId: 'CAPTURE_' + Date.now()
+        };
+
+    const response = await client.initiateCapture(payload);
 
     console.log('Payment Captured');
-    console.log('Capture ID:', capture.captureId);
-    console.log('Status:', capture.status);
+    console.log('Status:', response.status);
+    console.log('Raw Response:', response);
     
-    return capture;
+    return response;
   } catch (error) {
-    console.error('Capture Failed:', error.message);
+    console.error('Capture Error:', error.message);
     throw error;
   }
 }
@@ -250,20 +299,22 @@ async function capturePayment(gid, amount = null) {
 ```javascript
 async function refundPayment(gid, amount = null) {
   try {
-    const refund = await client.initiateRefund({
-      gid: gid,
+    const payload = {
+      refundType: amount ? 'P' : 'F',
+      gid,
       merchantTxnId: 'REFUND_' + Date.now(),
-      refundType: amount ? 'P' : 'F', // P = Partial, F = Full
-      paymentData: amount ? { totalAmount: amount } : undefined
-    });
+      paymentData: amount ? { totalAmount: amount } : { totalAmount: 0 }
+    };
+
+    const response = await client.initiateRefund(payload);
 
     console.log('Payment Refunded');
-    console.log('Refund ID:', refund.refundId);
-    console.log('Status:', refund.status);
+    console.log('Status:', response.status);
+    console.log('Raw Response:', response);
     
-    return refund;
+    return response;
   } catch (error) {
-    console.error('Refund Failed:', error.message);
+    console.error('Refund Error:', error.message);
     throw error;
   }
 }
@@ -274,18 +325,18 @@ async function refundPayment(gid, amount = null) {
 ```javascript
 async function reverseAuth(gid) {
   try {
-    const reversal = await client.initiateAuthReversal({
+    const response = await client.initiateAuthReversal({
       gid: gid,
       merchantTxnId: 'REVERSAL_' + Date.now()
     });
 
-    console.log( 'Auth Reversed');
-    console.log('Reversal ID:', reversal.reversalId);
-    console.log('Status:', reversal.status);
+    console.log('Auth Reversed');
+    console.log('Status:', response.status);
+    console.log('Raw Response:', response);
     
-    return reversal;
+    return response;
   } catch (error) {
-    console.error('Auth Reversal Failed:', error.message);
+    console.error('Auth Reversal Error:', error.message);
     throw error;
   }
 }
@@ -296,23 +347,29 @@ async function reverseAuth(gid) {
 #### 1. Pause SI
 
 ```javascript
-async function pauseStandingInstruction(mandateId) {
+async function pauseStandingInstruction(mandateId, startDate = null) {
   try {
-    const pause = await client.initiatePauseSI({
+    const standingInstruction = {
+      action: 'PAUSE',
+      mandateId
+    };
+
+    if (startDate) {
+      standingInstruction.data = { startDate };
+    }
+
+    const response = await client.initiatePauseSI({
       merchantTxnId: 'PAUSE_SI_' + Date.now(),
-      standingInstruction: {
-        action: 'PAUSE',
-        mandateId: mandateId
-      }
+      standingInstruction
     });
 
     console.log('SI Paused');
-    console.log('Mandate ID:', pause.mandateId);
-    console.log('Status:', pause.status);
+    console.log('Status:', response.status);
+    console.log('Raw Response:', response);
     
-    return pause;
+    return response;
   } catch (error) {
-    console.error('SI Pause Failed:', error.message);
+    console.error('SI Pause Error:', error.message);
     throw error;
   }
 }
@@ -323,7 +380,7 @@ async function pauseStandingInstruction(mandateId) {
 ```javascript
 async function activateStandingInstruction(mandateId) {
   try {
-    const activate = await client.initiateActivateSI({
+    const response = await client.initiateActivateSI({
       merchantTxnId: 'ACTIVATE_SI_' + Date.now(),
       standingInstruction: {
         action: 'ACTIVATE',
@@ -332,12 +389,12 @@ async function activateStandingInstruction(mandateId) {
     });
 
     console.log('SI Activated');
-    console.log('Mandate ID:', activate.mandateId);
-    console.log('Status:', activate.status);
+    console.log('Status:', response.status);
+    console.log('Raw Response:', response);
     
-    return activate;
+    return response;
   } catch (error) {
-    console.error('SI Activation Failed:', error.message);
+    console.error('SI Activation Error:', error.message);
     throw error;
   }
 }
@@ -345,197 +402,578 @@ async function activateStandingInstruction(mandateId) {
 
 ---
 
-## 🏗️ Merchant Backend Integration
+## 🏗️ Express.js Backend Integration
 
-### Express.js Integration Example
+### Complete Backend Implementation
 
 ```javascript
 const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
 const PayGlocalClient = require('payglocal-client');
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
+dotenv.config();
+const port = process.env.PORT || 3000;
 const app = express();
+
+app.use(cors());
 app.use(express.json());
 
+// Key normalization function
+function normalizePemKey(key) {
+  return key
+    .trim()
+    .replace(/\r\n|\r/g, '\n')
+    .replace(/\n\s*\n/g, '\n')
+    .replace(/[^\x00-\x7F]/g, '');
+}
+
+// Read and normalize PEM key content
+const payglocalPublicKey = normalizePemKey(
+  fs.readFileSync(path.resolve(__dirname, process.env.PAYGLOCAL_PUBLIC_KEY), 'utf8')
+);
+const merchantPrivateKey = normalizePemKey(
+  fs.readFileSync(path.resolve(__dirname, process.env.PAYGLOCAL_PRIVATE_KEY), 'utf8')
+);
+
+// Validate keys
+try {
+  crypto.createPublicKey(payglocalPublicKey);
+  console.log('Public key is valid');
+} catch (e) {
+  console.error('Invalid public key:', e.message);
+}
+
+try {
+  crypto.createPrivateKey(merchantPrivateKey);
+  console.log('Private key is valid');
+} catch (e) {
+  console.error('Invalid private key:', e.message);
+}
+
 // Initialize PayGlocal Client
-const payglocalClient = new PayGlocalClient({
+const client = new PayGlocalClient({
   apiKey: process.env.PAYGLOCAL_API_KEY,
   merchantId: process.env.PAYGLOCAL_MERCHANT_ID,
   publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID,
   privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID,
-  payglocalPublicKey: process.env.PAYGLOCAL_PUBLIC_KEY,
-  merchantPrivateKey: process.env.PAYGLOCAL_PRIVATE_KEY,
-  baseUrl: process.env.PAYGLOCAL_BASE_URL,
-  logLevel: process.env.PAYGLOCAL_LOG_LEVEL
+  payglocalPublicKey,
+  merchantPrivateKey,
+  payglocalEnv: process.env.PAYGLOCAL_Env_VAR,
+  logLevel: process.env.PAYGLOCAL_LOG_LEVEL || 'debug'
 });
 
-// Payment Routes
-app.post('/api/payments/create', async (req, res) => {
+// JWT Payment Route
+app.post('/api/pay/jwt', async (req, res) => {
   try {
-    const { amount, currency, customerEmail, customerName } = req.body;
+    const { merchantTxnId, paymentData, merchantCallbackURL } = req.body;
     
-    const payment = await payglocalClient.initiateJwtPayment({
-      merchantTxnId: 'TXN_' + Date.now(),
-      paymentData: {
-        totalAmount: amount.toString(),
-        txnCurrency: currency || 'INR',
-        billingData: {
-          emailId: customerEmail,
-          firstName: customerName
-        }
-      },
-      merchantCallbackURL: 'https://your-domain.com/api/payments/callback'
-    });
-
-    res.json({
-      success: true,
-      paymentLink: payment.paymentLink,
-      gid: payment.gid
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// Payment Status Check
-app.get('/api/payments/status/:gid', async (req, res) => {
-  try {
-    const { gid } = req.params;
-    const status = await payglocalClient.initiateCheckStatus({ gid });
-    
-    res.json({
-      success: true,
-      status: status.status,
-      gid: status.gid,
-      message: status.message
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// Payment Callback Handler
-app.post('/api/payments/callback', async (req, res) => {
-  try {
-    const { gid, status, merchantTxnId } = req.body;
-    
-    console.log('Payment Callback Received:', {
-      gid,
-      status,
-      merchantTxnId
-    });
-
-    // Process the payment status
-    if (status === 'SUCCESS') {
-      // Update your database
-      console.log('Payment successful for GID:', gid);
-    } else if (status === 'FAILED') {
-      console.log('Payment failed for GID:', gid);
+    if (!merchantTxnId || !paymentData || !merchantCallbackURL) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing required fields',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['merchantTxnId', 'paymentData', 'merchantCallbackURL'] }
+      });
     }
 
-    res.json({ success: true });
+    const payload = { merchantTxnId, paymentData, merchantCallbackURL };
+    console.log('Initiating JWT payment with payload:', payload);
+
+    const payment = await client.initiateJwtPayment(payload);
+    console.log('Raw SDK Response:', payment);
+
+    // Check for SDK errors
+    if (payment?.status === 'REQUEST_ERROR' || payment?.status === 'ERROR' || payment?.error) {
+      throw new Error(`PayGlocal SDK Error: ${payment.message || payment.error || 'Unknown error'}`);
+    }
+
+    // Extract payment link and gid
+    const paymentLink = payment?.data?.redirectUrl || 
+                       payment?.data?.redirect_url || 
+                       payment?.data?.payment_link ||
+                       payment?.redirectUrl ||
+                       payment?.redirect_url ||
+                       payment?.payment_link ||
+                       payment?.data?.paymentLink ||
+                       payment?.paymentLink;
+                       
+    const gid = payment?.gid || 
+                payment?.data?.gid || 
+                payment?.transactionId ||
+                payment?.data?.transactionId;
+
+    const formattedResponse = {
+      status: 'SUCCESS',
+      message: 'Payment initiated successfully',
+      payment_link: paymentLink,
+      gid: gid,
+      raw_response: payment
+    };
+    
+    res.status(200).json(formattedResponse);
   } catch (error) {
-    console.error('Callback processing error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('JWT Payment Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message || 'Payment failed',
+      code: 'PAYMENT_ERROR'
+    });
+  }
+});
+
+// SI Payment Route
+app.post('/api/pay/si', async (req, res) => {
+  try {
+    const { merchantTxnId, paymentData, merchantCallbackURL, standingInstruction } = req.body;
+    
+    if (!merchantTxnId || !paymentData || !merchantCallbackURL || !standingInstruction) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing required fields',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['merchantTxnId', 'paymentData', 'merchantCallbackURL', 'standingInstruction'] }
+      });
+    }
+
+    const payload = { merchantTxnId, paymentData, standingInstruction, merchantCallbackURL };
+    console.log('Initiating SI payment with payload:', payload);
+
+    const payment = await client.initiateSiPayment(payload);
+    console.log('Raw SDK Response:', payment);
+
+    // Check for SDK errors
+    if (payment?.status === 'REQUEST_ERROR' || payment?.status === 'ERROR' || payment?.error) {
+      throw new Error(`PayGlocal SDK Error: ${payment.message || payment.error || 'Unknown error'}`);
+    }
+
+    // Extract payment link, gid, and mandateId
+    const paymentLink = payment?.data?.redirectUrl || 
+                       payment?.data?.redirect_url || 
+                       payment?.data?.payment_link ||
+                       payment?.redirectUrl ||
+                       payment?.redirect_url ||
+                       payment?.payment_link ||
+                       payment?.data?.paymentLink ||
+                       payment?.paymentLink;
+                       
+    const gid = payment?.gid || 
+                payment?.data?.gid || 
+                payment?.transactionId ||
+                payment?.data?.transactionId;
+                
+    const mandateId = payment?.mandateId || 
+                     payment?.data?.mandateId ||
+                     payment?.standingInstruction?.mandateId;
+
+    const formattedResponse = {
+      status: 'SUCCESS',
+      message: 'SI Payment initiated successfully',
+      payment_link: paymentLink,
+      gid: gid,
+      mandateId: mandateId,
+      raw_response: payment
+    };
+    
+    res.status(200).json(formattedResponse);
+  } catch (error) {
+    console.error('SI Payment Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message || 'SI Payment failed',
+      code: 'SI_PAYMENT_ERROR'
+    });
+  }
+});
+
+// Auth Payment Route
+app.post('/api/pay/auth', async (req, res) => {
+  try {
+    const { merchantTxnId, paymentData, captureTxn, riskData, merchantCallbackURL } = req.body;
+    
+    if (!merchantTxnId || !paymentData || !merchantCallbackURL) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing required fields',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['merchantTxnId', 'paymentData', 'merchantCallbackURL'] }
+      });
+    }
+
+    const payload = { merchantTxnId, paymentData, captureTxn, riskData, merchantCallbackURL };
+    console.log('Initiating Auth payment with payload:', payload);
+
+    const payment = await client.initiateAuthPayment(payload);
+    console.log('Raw SDK Response:', payment);
+
+    // Extract payment link and gid
+    const paymentLink = payment?.data?.redirectUrl || 
+                       payment?.data?.redirect_url || 
+                       payment?.data?.payment_link ||
+                       payment?.redirectUrl ||
+                       payment?.redirect_url ||
+                       payment?.payment_link ||
+                       payment?.data?.paymentLink ||
+                       payment?.paymentLink;
+                       
+    const gid = payment?.gid || 
+                payment?.data?.gid || 
+                payment?.transactionId ||
+                payment?.data?.transactionId;
+
+    const formattedResponse = {
+      status: 'SUCCESS',
+      message: 'Auth Payment initiated successfully',
+      payment_link: paymentLink,
+      gid: gid,
+      raw_response: payment
+    };
+    
+    res.status(200).json(formattedResponse);
+  } catch (error) {
+    console.error('Auth Payment Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message || 'Auth Payment failed',
+      code: 'AUTH_PAYMENT_ERROR'
+    });
   }
 });
 
 // Refund Route
-app.post('/api/payments/refund', async (req, res) => {
+app.post('/api/refund', async (req, res) => {
   try {
-    const { gid, amount } = req.body;
+    const { gid, refundType, paymentData } = req.body;
     
-    const refund = await payglocalClient.initiateRefund({
-      gid: gid,
+    if (!gid) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing gid',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['gid'] }
+      });
+    }
+
+    if (refundType === 'P' && (!paymentData || !paymentData.totalAmount)) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing paymentData.totalAmount for partial refund',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['paymentData.totalAmount'] }
+      });
+    }
+
+    const payload = {
+      refundType,
+      gid,
       merchantTxnId: 'REFUND_' + Date.now(),
-      refundType: amount ? 'P' : 'F',
-      paymentData: amount ? { totalAmount: amount } : undefined
-    });
+      paymentData: refundType === 'F' ? { totalAmount: 0 } : { totalAmount: paymentData.totalAmount }
+    };
 
-    res.json({
-      success: true,
-      refundId: refund.refundId,
-      status: refund.status
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-```
-
-### Fastify Integration Example
-
-```javascript
-const fastify = require('fastify');
-const PayGlocalClient = require('payglocal-client');
-require('dotenv').config();
-
-const app = fastify();
-
-// Initialize PayGlocal Client
-const payglocalClient = new PayGlocalClient({
-  apiKey: process.env.PAYGLOCAL_API_KEY,
-  merchantId: process.env.PAYGLOCAL_MERCHANT_ID,
-  publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID,
-  privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID,
-  payglocalPublicKey: process.env.PAYGLOCAL_PUBLIC_KEY,
-  merchantPrivateKey: process.env.PAYGLOCAL_PRIVATE_KEY,
-  baseUrl: process.env.PAYGLOCAL_BASE_URL,
-  logLevel: process.env.PAYGLOCAL_LOG_LEVEL
-});
-
-// Payment creation endpoint
-app.post('/api/payments', async (request, reply) => {
-  try {
-    const { amount, currency, customerEmail } = request.body;
+    const refundDetail = await client.initiateRefund(payload);
+    console.log('Raw SDK Response:', refundDetail);
     
-    const payment = await payglocalClient.initiateJwtPayment({
-      merchantTxnId: 'TXN_' + Date.now(),
-      paymentData: {
-        totalAmount: amount.toString(),
-        txnCurrency: currency || 'INR',
-        billingData: { emailId: customerEmail }
-      },
-      merchantCallbackURL: 'https://your-domain.com/api/payments/callback'
-    });
-
-    return { success: true, paymentLink: payment.paymentLink, gid: payment.gid };
-  } catch (error) {
-    reply.code(400);
-    return { success: false, error: error.message };
-  }
-});
-
-// Status check endpoint
-app.get('/api/payments/:gid/status', async (request, reply) => {
-  try {
-    const { gid } = request.params;
-    const status = await payglocalClient.initiateCheckStatus({ gid });
+    // Check for SDK errors
+    if (refundDetail?.status === 'REQUEST_ERROR' || refundDetail?.status === 'ERROR' || refundDetail?.error) {
+      throw new Error(`PayGlocal SDK Error: ${refundDetail.message || refundDetail.error || 'Unknown error'}`);
+    }
     
-    return { success: true, status: status.status, gid: status.gid };
+    // Extract fields from response
+    const refundGid = refundDetail?.gid || 
+                     refundDetail?.data?.gid || 
+                     refundDetail?.transactionId ||
+                     refundDetail?.data?.transactionId;
+                     
+    const refundId = refundDetail?.refundId || 
+                    refundDetail?.data?.refundId ||
+                    refundDetail?.id ||
+                    refundDetail?.data?.id;
+                    
+    const status = refundDetail?.status || 
+                  refundDetail?.data?.status ||
+                  refundDetail?.result ||
+                  refundDetail?.data?.result;
+
+    const formattedResponse = {
+      status: 'SUCCESS',
+      message: `Refund ${status ? status.toLowerCase() : 'initiated'} successfully`,
+      gid: refundGid,
+      refundId: refundId,
+      transactionStatus: status,
+      raw_response: refundDetail
+    };
+    
+    res.status(200).json(formattedResponse);
   } catch (error) {
-    reply.code(400);
-    return { success: false, error: error.message };
+    console.error('Refund Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message || 'Refund failed',
+      code: 'REFUND_ERROR'
+    });
   }
 });
 
-app.listen({ port: 3000 }, (err) => {
-  if (err) throw err;
-  console.log('Fastify server running on port 3000');
+// Capture Route
+app.post('/api/cap', async (req, res) => {
+  try {
+    const { captureType, paymentData } = req.body;
+    const { gid } = req.query;
+
+    if (!gid) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing gid',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['gid'] }
+      });
+    }
+
+    if (captureType === 'P' && (!paymentData || !paymentData.totalAmount)) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing paymentData.totalAmount for partial capture',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['paymentData.totalAmount'] }
+      });
+    }
+
+    const payload = captureType === 'F'
+      ? { captureType: 'F', gid, merchantTxnId: 'CAPTURE_' + Date.now() }
+      : {
+          captureType: 'P',
+          gid,
+          merchantTxnId: 'CAPTURE_' + Date.now(),
+          paymentData: { totalAmount: paymentData.totalAmount }
+        };
+
+    const payment = await client.initiateCapture(payload);
+    console.log('Raw SDK Response:', payment);
+    
+    // Extract fields from response
+    const captureGid = payment?.gid || 
+                      payment?.data?.gid || 
+                      payment?.transactionId ||
+                      payment?.data?.transactionId;
+                      
+    const captureId = payment?.captureId || 
+                     payment?.data?.captureId ||
+                     payment?.id ||
+                     payment?.data?.id;
+                     
+    const captureStatus = payment?.status || 
+                         payment?.data?.status ||
+                         payment?.result ||
+                         payment?.data?.result;
+
+    const formattedResponse = {
+      status: 'SUCCESS',
+      message: `Capture ${captureStatus ? captureStatus.toLowerCase() : 'initiated'} successfully`,
+      gid: captureGid,
+      captureId: captureId,
+      transactionStatus: captureStatus,
+      raw_response: payment
+    };
+    
+    res.status(200).json(formattedResponse);
+  } catch (error) {
+    console.error('Capture Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message || 'Capture failed',
+      code: 'CAPTURE_ERROR'
+    });
+  }
+});
+
+// Auth Reversal Route
+app.post('/api/authreversal', async (req, res) => {
+  try {
+    const { gid } = req.query;
+    
+    if (!gid) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing gid',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['gid'] }
+      });
+    }
+
+    const payload = { gid, merchantTxnId: 'REVERSAL_' + Date.now() };
+    const payment = await client.initiateAuthReversal(payload);
+    console.log('Raw SDK Response:', payment);
+    
+    // Extract fields from response
+    const reversalGid = payment?.gid || 
+                       payment?.data?.gid || 
+                       payment?.transactionId ||
+                       payment?.data?.transactionId;
+                       
+    const reversalId = payment?.reversalId || 
+                      payment?.data?.reversalId ||
+                      payment?.id ||
+                      payment?.data?.id;
+                      
+    const reversalStatus = payment?.status || 
+                          payment?.data?.status ||
+                          payment?.result ||
+                          payment?.data?.result;
+
+    const formattedResponse = {
+      status: 'SUCCESS',
+      message: `Auth reversal ${reversalStatus ? reversalStatus.toLowerCase() : 'initiated'} successfully`,
+      gid: reversalGid,
+      reversalId: reversalId,
+      transactionStatus: reversalStatus,
+      raw_response: payment
+    };
+    
+    res.status(200).json(formattedResponse);
+  } catch (error) {
+    console.error('Auth Reversal Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message || 'Auth reversal failed',
+      code: 'AUTH_REVERSAL_ERROR'
+    });
+  }
+});
+
+// Status Check Route
+app.get('/api/status', async (req, res) => {
+  try {
+    const { gid } = req.query;
+
+    if (!gid) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing gid',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['gid'] }
+      });
+    }
+
+    const payload = { gid };
+    const payment = await client.initiateCheckStatus(payload);
+    console.log('Raw SDK Response:', payment);
+    
+    // Extract fields from response
+    const statusGid = payment?.gid || 
+                     payment?.data?.gid || 
+                     payment?.transactionId ||
+                     payment?.data?.transactionId;
+                     
+    const statusResult = payment?.status || 
+                        payment?.data?.status ||
+                        payment?.result ||
+                        payment?.data?.result ||
+                        payment?.transactionStatus ||
+                        payment?.data?.transactionStatus;
+
+    const formattedResponse = {
+      status: 'SUCCESS',
+      message: `Status check completed - Transaction ${statusResult ? statusResult.toLowerCase() : 'status retrieved'}`,
+      gid: statusGid,
+      transactionStatus: statusResult,
+      raw_response: payment
+    };
+    
+    res.status(200).json(formattedResponse);
+  } catch (error) {
+    console.error('Status Check Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message || 'Status check failed',
+      code: 'STATUS_CHECK_ERROR'
+    });
+  }
+});
+
+// SI Pause/Activate Route
+app.post('/api/pauseActivate', async (req, res) => {
+  try {
+    const { standingInstruction } = req.body;
+    
+    if (!standingInstruction) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing standingInstruction',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['standingInstruction'] }
+      });
+    }
+
+    if (!standingInstruction.action || !standingInstruction.mandateId) {
+      return res.status(400).json({ 
+        status: 'error',
+        message: 'Missing action or mandateId in standingInstruction',
+        code: 'VALIDATION_ERROR',
+        details: { requiredFields: ['standingInstruction.action', 'standingInstruction.mandateId'] }
+      });
+    }
+
+    const payload = {
+      merchantTxnId: 'SI_' + Date.now(),
+      standingInstruction,
+    };
+
+    console.log('Initiating SI with payload:', payload);
+
+    const action = standingInstruction.action.toUpperCase();
+    let response;
+     
+    if (action === 'PAUSE') {
+      response = await client.initiatePauseSI(payload);
+    } else if (action === 'ACTIVATE') {
+      response = await client.initiateActivateSI(payload);
+    } else {
+      return res.status(400).json({ 
+        status: 'error',
+        message: `Unsupported action: ${standingInstruction.action}`,
+        code: 'VALIDATION_ERROR',
+        details: { supportedActions: ['PAUSE','ACTIVATE'] }
+      });
+    }
+
+    console.log('Raw SDK Response:', response);
+
+    // Extract fields from response
+    const siMandateId = response?.mandateId || 
+                       response?.data?.mandateId ||
+                       response?.standingInstruction?.mandateId;
+                       
+    const siStatus = response?.status || 
+                    response?.data?.status ||
+                    response?.result ||
+                    response?.data?.result;
+
+    const formattedResponse = {
+      status: 'SUCCESS',
+      message: `SI ${action} ${siStatus ? siStatus.toLowerCase() : 'completed'} successfully`,
+      mandateId: siMandateId,
+      action: standingInstruction.action,
+      transactionStatus: siStatus,
+      raw_response: response
+    };
+    
+    res.status(200).json(formattedResponse);
+  } catch (error) {
+    console.error('SI pause/activate Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      message: error.message || 'SI pause/activate failed',
+      code: 'SI_ERROR'
+    });
+  }
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 });
 ```
 
@@ -603,7 +1041,7 @@ try {
 try {
   const client = new PayGlocalClient({});
 } catch (error) {
-  console.error(error.message); // "Missing required configuration: apiKey"
+  console.error(error.message); // "Missing required configuration: merchantId"
 }
 
 // API errors
@@ -623,7 +1061,6 @@ try {
 ```javascript
 const client = new PayGlocalClient({
   // Required Fields
-  apiKey: 'your_api_key',
   merchantId: 'your_merchant_id',
   publicKeyId: 'your_public_key_id',
   privateKeyId: 'your_private_key_id',
@@ -631,7 +1068,8 @@ const client = new PayGlocalClient({
   merchantPrivateKey: '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----',
   
   // Optional Fields
-  baseUrl: 'https://api.uat.payglocal.in', // or PROD URL
+  apiKey: 'your_api_key', // For API key authentication
+  payglocalEnv: 'UAT', // UAT or PROD
   logLevel: 'info', // error, warn, info, debug
   tokenExpiration: 300000 // 5 minutes in milliseconds
 });
@@ -641,18 +1079,25 @@ const client = new PayGlocalClient({
 
 ```javascript
 // Production configuration
-will be provided at Integration time!
-
-// Development configuration
-const devClient = new PayGlocalClient({
-  apiKey: process.env.PAYGLOCAL_API_KEY,
+const prodClient = new PayGlocalClient({
   merchantId: process.env.PAYGLOCAL_MERCHANT_ID,
   publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID,
   privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID,
   payglocalPublicKey: process.env.PAYGLOCAL_PUBLIC_KEY,
   merchantPrivateKey: process.env.PAYGLOCAL_PRIVATE_KEY,
-  baseUrl: 'https://api.uat.payglocal.in', // UAT URL
-  logLevel: 'debug' // Detailed logging for development
+  payglocalEnv: 'PROD',
+  logLevel: 'error'
+});
+
+// Development configuration
+const devClient = new PayGlocalClient({
+  merchantId: process.env.PAYGLOCAL_MERCHANT_ID,
+  publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID,
+  privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID,
+  payglocalPublicKey: process.env.PAYGLOCAL_PUBLIC_KEY,
+  merchantPrivateKey: process.env.PAYGLOCAL_PRIVATE_KEY,
+  payglocalEnv: 'UAT',
+  logLevel: 'debug'
 });
 ```
 
@@ -723,16 +1168,18 @@ const payment = await client.initiateJwtPayment({
 ```javascript
 // Use environment-specific configurations
 const config = {
-  apiKey: process.env.PAYGLOCAL_API_KEY,
   merchantId: process.env.PAYGLOCAL_MERCHANT_ID,
-  // ... other config
+  publicKeyId: process.env.PAYGLOCAL_PUBLIC_KEY_ID,
+  privateKeyId: process.env.PAYGLOCAL_PRIVATE_KEY_ID,
+  payglocalPublicKey: process.env.PAYGLOCAL_PUBLIC_KEY,
+  merchantPrivateKey: process.env.PAYGLOCAL_PRIVATE_KEY,
 };
 
 if (process.env.NODE_ENV === 'production') {
-  config.baseUrl = 'https://api.payglocal.in';
+  config.payglocalEnv = 'PROD';
   config.logLevel = 'error';
 } else {
-  config.baseUrl = 'https://api.uat.payglocal.in';
+  config.payglocalEnv = 'UAT';
   config.logLevel = 'debug';
 }
 
@@ -775,19 +1222,17 @@ app.post('/api/payments/callback', async (req, res) => {
 #### 1. Configuration Errors
 
 ```javascript
-// Error: Missing required configuration: apiKey
+// Error: Missing required configuration: merchantId
 // Solution: Ensure all required environment variables are set
-console.log('API Key:', process.env.PAYGLOCAL_API_KEY ? 'Set' : 'Missing');
+console.log('Merchant ID:', process.env.PAYGLOCAL_MERCHANT_ID ? 'Set' : 'Missing');
 ```
 
 #### 2. Key Format Issues
 
 ```javascript
 // Error: Invalid key format
-// Solution: Ensure keys are in proper PEM format
-const publicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
------END PUBLIC KEY-----`;
+// Solution: Ensure keys are in proper PEM format and file paths are correct
+const publicKey = fs.readFileSync(path.resolve(__dirname, 'keys/payglocal_public_key'), 'utf8');
 ```
 
 #### 3. Network Issues
@@ -797,7 +1242,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 // Solution: Check internet connection and API endpoint
 const client = new PayGlocalClient({
   // ... config
-  baseUrl: 'https://api.uat.payglocal.in' // Verify URL
+  payglocalEnv: 'UAT' // Verify environment
 });
 ```
 
@@ -865,7 +1310,7 @@ async function initiatePaymentWithRetry(paymentData, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await client.initiateJwtPayment(paymentData);
-} catch (error) {
+    } catch (error) {
       if (attempt === maxRetries) throw error;
       if (error.message.includes('timeout')) {
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
@@ -887,14 +1332,12 @@ async function initiatePaymentWithRetry(paymentData, maxRetries = 3) {
 // Store keys securely
 // Don't hardcode keys
 const client = new PayGlocalClient({
-  apiKey: 'hardcoded_key', // Bad
-  merchantPrivateKey: 'hardcoded_key' // Bad
+  merchantPrivateKey: 'hardcoded_key', // Bad
 });
 
-// Use environment variables
+// Use environment variables and file system
 const client = new PayGlocalClient({
-  apiKey: process.env.PAYGLOCAL_API_KEY, // Good
-  merchantPrivateKey: process.env.PAYGLOCAL_PRIVATE_KEY // Good
+  merchantPrivateKey: fs.readFileSync(path.resolve(__dirname, 'keys/payglocal_private_key'), 'utf8'), // Good
 });
 ```
 
@@ -930,7 +1373,7 @@ app.post('/api/payments', async (req, res) => {
 // Ensure all communications use HTTPS
 const client = new PayGlocalClient({
   // ... config
-  baseUrl: 'https://api.payglocal.in' // Always use HTTPS
+  payglocalEnv: 'PROD' // Always use HTTPS in production
 });
 ```
 
