@@ -65,9 +65,48 @@ backend/
 
 ### 3. SDK Initialization
 
+
+### From GitHub Repository (Current)
+
+```bash
+# Clone the repository
+git clone https://github.com/Parthsingh2111/pg-client-sdk.git
+
+# Navigate to the project directory
+cd pg-client-sdk
+
+# Install dependencies
+npm install
+
+# Build the SDK
+npm run build
+```
+
+### From Local Development
+
+```bash
+# If you have the SDK locally, you can install it as a local dependency
+npm install file:../pg-client-sdk
+```
+
+### From NPM (Future Release)
+
+```bash
+# This will be available once published to npm
+npm install payglocal-client
+```
 ```javascript
+
+```bash
+
+```
+### FILE CONFIG (COPY IT FOR FAST INSTALLATION)
+
+```bash
+
 require('dotenv').config();
-const PayGlocalClient = require('payglocal-client');
+//const PayGlocalClient = require('payglocal-client'); (future when released on npm)
+const PayGlocalClient = require('./pg-client-sdk/lib/index.js'); // current from git hub
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
