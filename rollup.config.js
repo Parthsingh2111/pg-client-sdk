@@ -6,16 +6,16 @@ module.exports = [
   {
     input: 'lib/index.js',
     output: {
-      file: 'dist/payglocal.cjs',
+      file: 'dist/index.js',
       format: 'cjs',
-      exports: 'auto',
+      exports: 'named',
     },
     plugins: [nodeResolve(), commonjs(), json()],
   },
   {
     input: 'lib/index.js',
     output: {
-      file: 'dist/payglocal.mjs',
+      file: 'dist/index.mjs',
       format: 'esm',
     },
     plugins: [nodeResolve(), commonjs(), json()],
