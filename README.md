@@ -54,7 +54,8 @@ PAYGLOCAL_API_KEY=your_api_key_here
 Create a `keys` directory in your project root and place your PEM key files:
 
 ```
-project/
+(In The Backend folder for security)
+backend/
 ├── keys/
 │   ├── payglocal_public_key
 │   └── payglocal_private_key
