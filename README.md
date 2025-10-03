@@ -4,20 +4,20 @@ A **production-ready**, secure, and modular Node.js SDK for integrating with the
 
 ---
 
-## 🚀 Features
+## Features
 
-- **🔐 Enterprise Security**: JWE (RSA-OAEP-256) and JWS (RS256) encryption for all sensitive data
-- **💳 Complete Payment Suite**: API key, JWT, SI, auth, captures, refunds, reversals, status checks
-- **🛡️ Robust Validation**: Comprehensive input validation with custom business logic
-- **📊 Advanced Logging**: Structured logging with configurable levels and sensitive data masking
-- **⚡ High Performance**: Native fetch implementation with timeout protection
-- **🏗️ Modular Architecture**: Clean separation of concerns with layered design
-- **🔧 Developer Friendly**: Intuitive APIs, comprehensive error handling, and detailed documentation
-- **📦 Minimal Dependencies**: Only essential dependencies for optimal performance
+- **Enterprise Security**: JWE (RSA-OAEP-256) and JWS (RS256) encryption for all sensitive data
+- **Complete Payment Suite**: API key, JWT, SI, auth, captures, refunds, reversals, status checks
+- **Robust Validation**: Comprehensive input validation with custom business logic
+- **Advanced Logging**: Structured logging with configurable levels and sensitive data masking
+- **High Performance**: Native fetch implementation with timeout protection
+- **Modular Architecture**: Clean separation of concerns with layered design
+- **Developer Friendly**: Intuitive APIs, comprehensive error handling, and detailed documentation
+- **Minimal Dependencies**: Only essential dependencies for optimal performance
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 npm install payglocal-client
@@ -25,7 +25,7 @@ npm install payglocal-client
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### 1. Environment Setup
 
@@ -123,7 +123,7 @@ const client = new PayGlocalClient({
 
 ---
 
-## 🎯 Quick Start Examples
+## Quick Start Examples
 
 ### Payment Operations
 
@@ -464,7 +464,7 @@ async function siStatusCheck(mandateId) {
 
 ---
 
-## 🏗️ Express.js Backend Integration
+## Express.js Backend Integration
 
 ### Complete Backend Implementation
 
@@ -1041,7 +1041,7 @@ app.listen(port, () => {
 
 ---
 
-## 📊 Logging & Monitoring
+## Logging & Monitoring
 
 ### Log Levels
 
@@ -1069,7 +1069,7 @@ const client = new PayGlocalClient({
 
 ---
 
-## 🛡️ Error Handling
+## Error Handling
 
 ### Error Types
 
@@ -1116,7 +1116,7 @@ try {
 
 ---
 
-## 🔧 Configuration Options
+## Configuration Options
 
 ### Full Configuration Object
 
@@ -1165,7 +1165,7 @@ const devClient = new PayGlocalClient({
 
 ---
 
-## 📋 API Reference
+## API Reference
 
 ### Payment Methods
 
@@ -1191,6 +1191,72 @@ const devClient = new PayGlocalClient({
 |--------|-------------|------------|---------|
 | `initiatePauseSI(params)` | Pause SI | `{merchantTxnId, standingInstruction}` | `{status, mandateId}` |
 | `initiateActivateSI(params)` | Activate SI | `{merchantTxnId, standingInstruction}` | `{status, mandateId}` |
+
+---
+
+## Method Call Examples (Node.js)
+
+```javascript
+// JWT Payment
+await client.initiateJwtPayment({
+  merchantTxnId: 'TXN_' + Date.now(),
+  paymentData: { totalAmount: '1000.00', txnCurrency: 'INR' },
+  merchantCallbackURL: 'https://merchant.com/callback'
+});
+
+// API Key Payment
+await client.initiateApiKeyPayment({
+  merchantTxnId: 'TXN_' + Date.now(),
+  paymentData: { totalAmount: '500.00', txnCurrency: 'INR' },
+  merchantCallbackURL: 'https://merchant.com/callback'
+});
+
+// SI Payment
+await client.initiateSiPayment({
+  merchantTxnId: 'SI_' + Date.now(),
+  paymentData: { totalAmount: '1000.00', txnCurrency: 'INR' },
+  standingInstruction: { data: { numberOfPayments: '12', frequency: 'MONTHLY', type: 'FIXED', amount: '1000.00', startDate: '2025-09-01' } },
+  merchantCallbackURL: 'https://merchant.com/callback'
+});
+
+// Auth Payment
+await client.initiateAuthPayment({
+  merchantTxnId: 'AUTH_' + Date.now(),
+  paymentData: { totalAmount: '2000.00', txnCurrency: 'INR' },
+  captureTxn: false,
+  merchantCallbackURL: 'https://merchant.com/callback'
+});
+
+// Check Status
+await client.initiateCheckStatus({ gid: 'gl_o-xxxx' });
+
+// Capture (Full)
+await client.initiateCapture({ captureType: 'F', gid: 'gl_o-xxxx', merchantTxnId: 'CAPTURE_' + Date.now() });
+
+// Capture (Partial)
+await client.initiateCapture({ captureType: 'P', gid: 'gl_o-xxxx', merchantTxnId: 'CAPTURE_' + Date.now(), paymentData: { totalAmount: '250.00' } });
+
+// Refund (Full)
+await client.initiateRefund({ refundType: 'F', gid: 'gl_o-xxxx', merchantTxnId: 'REFUND_' + Date.now(), paymentData: { totalAmount: 0 } });
+
+// Refund (Partial)
+await client.initiateRefund({ refundType: 'P', gid: 'gl_o-xxxx', merchantTxnId: 'REFUND_' + Date.now(), paymentData: { totalAmount: '250.00' } });
+
+// Auth Reversal
+await client.initiateAuthReversal({ gid: 'gl_o-xxxx', merchantTxnId: 'REVERSAL_' + Date.now() });
+
+// SI Pause
+await client.initiatePauseSI({ merchantTxnId: 'PAUSE_SI_' + Date.now(), standingInstruction: { action: 'PAUSE', mandateId: 'md_xxx' } });
+
+// SI Activate
+await client.initiateActivateSI({ merchantTxnId: 'ACTIVATE_SI_' + Date.now(), standingInstruction: { action: 'ACTIVATE', mandateId: 'md_xxx' } });
+
+// SI On-Demand Variable
+await client.initiateSiOnDemandVariable({ merchantTxnId: 'SI_SALE_' + Date.now(), standingInstruction: { mandateId: 'md_xxx' }, paymentData: { totalAmount: '150.00', txnCurrency: 'INR' } });
+
+// SI On-Demand Fixed
+await client.initiateSiOnDemandFixed({ merchantTxnId: 'SI_SALE_' + Date.now(), standingInstruction: { mandateId: 'md_xxx' } });
+```
 
 ### SI On-Demand
 
@@ -1284,7 +1350,7 @@ app.post('/api/payments/callback', async (req, res) => {
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -1344,7 +1410,7 @@ const client = new PayGlocalClient({
 
 ---
 
-## 📈 Performance Optimization
+## Performance Optimization
 
 ### 1. Connection Pooling
 
@@ -1393,7 +1459,7 @@ async function initiatePaymentWithRetry(paymentData, maxRetries = 3) {
 
 ---
 
-## 🔒 Security Considerations
+## Security Considerations
 
 ### 1. Key Management
 
