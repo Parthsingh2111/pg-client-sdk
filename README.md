@@ -81,12 +81,17 @@ function normalizePemKey(key) {
 }
 
 // Read and normalize PEM key content
-const payglocalPublicKey = normalizePemKey(
-  fs.readFileSync(path.resolve(__dirname, process.env.PAYGLOCAL_PUBLIC_KEY), 'utf8')
-);
-const merchantPrivateKey = normalizePemKey(
-  fs.readFileSync(path.resolve(__dirname, process.env.PAYGLOCAL_PRIVATE_KEY), 'utf8')
-);
+// Two supported ways:
+// 1) Env contains file paths
+const pubFromFile = fs.readFileSync(path.resolve(__dirname, process.env.PAYGLOCAL_PUBLIC_KEY), 'utf8');
+const privFromFile = fs.readFileSync(path.resolve(__dirname, process.env.PAYGLOCAL_PRIVATE_KEY), 'utf8');
+
+// 2) Env contains full PEM strings (beginning with -----BEGIN)
+const pubFromEnv = process.env.PAYGLOCAL_PUBLIC_KEY?.includes('-----BEGIN') ? process.env.PAYGLOCAL_PUBLIC_KEY : null;
+const privFromEnv = process.env.PAYGLOCAL_PRIVATE_KEY?.includes('-----BEGIN') ? process.env.PAYGLOCAL_PRIVATE_KEY : null;
+
+const payglocalPublicKey = normalizePemKey(pubFromEnv || pubFromFile);
+const merchantPrivateKey = normalizePemKey(privFromEnv || privFromFile);
 
 // Validate keys
 try {
@@ -234,6 +239,45 @@ async function createAuthPayment() {
     return response;
   } catch (error) {
     console.error('Auth Payment Error:', error.message);
+    throw error;
+  }
+}
+```
+
+#### 5. SI On-Demand (Variable amount)
+
+```javascript
+async function siOnDemandVariable(mandateId, amount) {
+  try {
+    const response = await client.initiateSiOnDemandVariable({
+      merchantTxnId: 'SI_SALE_' + Date.now(),
+      standingInstruction: { mandateId },
+      paymentData: { totalAmount: amount, txnCurrency: 'INR' }
+    });
+
+    console.log('SI Variable Sale Response:', response);
+    return response;
+  } catch (error) {
+    console.error('SI Variable Sale Error:', error.message);
+    throw error;
+  }
+}
+```
+
+#### 6. SI On-Demand (Fixed amount)
+
+```javascript
+async function siOnDemandFixed(mandateId) {
+  try {
+    const response = await client.initiateSiOnDemandFixed({
+      merchantTxnId: 'SI_SALE_' + Date.now(),
+      standingInstruction: { mandateId }
+    });
+
+    console.log('SI Fixed Sale Response:', response);
+    return response;
+  } catch (error) {
+    console.error('SI Fixed Sale Error:', error.message);
     throw error;
   }
 }
@@ -395,6 +439,24 @@ async function activateStandingInstruction(mandateId) {
     return response;
   } catch (error) {
     console.error('SI Activation Error:', error.message);
+    throw error;
+  }
+}
+```
+
+#### 3. SI Status Check
+
+```javascript
+async function siStatusCheck(mandateId) {
+  try {
+    const response = await client.initiateSiStatusCheck({
+      standingInstruction: { mandateId }
+    });
+
+    console.log('SI Status:', response);
+    return response;
+  } catch (error) {
+    console.error('SI Status Error:', error.message);
     throw error;
   }
 }
@@ -1129,6 +1191,13 @@ const devClient = new PayGlocalClient({
 |--------|-------------|------------|---------|
 | `initiatePauseSI(params)` | Pause SI | `{merchantTxnId, standingInstruction}` | `{status, mandateId}` |
 | `initiateActivateSI(params)` | Activate SI | `{merchantTxnId, standingInstruction}` | `{status, mandateId}` |
+
+### SI On-Demand
+
+| Method | Description | Parameters | Returns |
+|--------|-------------|------------|---------|
+| `initiateSiOnDemandVariable(params)` | SI sale with variable amount | `{merchantTxnId, standingInstruction.mandateId, paymentData.totalAmount, paymentData.txnCurrency}` | `{status, gid}` |
+| `initiateSiOnDemandFixed(params)` | SI sale with fixed amount (from mandate) | `{merchantTxnId, standingInstruction.mandateId}` | `{status, gid}` |
 
 ---
 
